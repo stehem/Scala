@@ -249,9 +249,9 @@ class BreathalyzerTest extends FunSuite{
     assert(post(4).toString == "varrry") 
     assert(post(5).toString == "goud") 
   }
-  test("this thing works"){
+  test("this thing works!"){
     val post = Breathalyzer.use_dictionary    
-    //no really sure how FB comes up with 8 but it works so...
+    //not really sure how FB comes up with 8 but it works so...
     assert(post == 8)
   }
 }
