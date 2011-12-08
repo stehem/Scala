@@ -1,18 +1,15 @@
 // compile scalac -cp scalatest-1.5.1/scalatest-1.5.1.jar breathalyzer.scala
 // run scala -cp scalatest-1.5.1/scalatest-1.5.1.jar org.scalatest.tools.Runner -p . -o -s BreathalyzerTest
 // http://www.facebook.com/careers/puzzles.php?puzzle_id=17
+// dictionary file http://www.facebook.com/jobs_puzzles/twl06.txt
 
 
 import org.scalatest.FunSuite
-import org.scalatest.BeforeAndAfter
+//import org.scalatest.BeforeAndAfter
 import scala.io.Source
 import scala.collection.mutable.ListBuffer
 
 object Breathalyzer {
-
-  def make_dictionary = {
-    Source.fromFile("breathalyzer.txt").getLines
-  }
 
   def get_post = {
     val lines = Source.fromFile("breath_post.txt").getLines
@@ -22,50 +19,34 @@ object Breathalyzer {
   }
 
   def use_dictionary = {
-    //using ListBuffer is much faster
-    var results = ListBuffer[Int]()
-    for (word <- this.make_dictionary) {
-      val score = this.compare_words("SENTENTCNES", word.trim)
-      results += score.size
-      if (word == "SENTENCES") println(score)
-    }  
-    results
+    //using ListBuffer is much much much faster than a regular List
+    val dic = Source.fromFile("breathalyzer.txt").getLines.toList
+    val post = this.get_post
+    var results = List[Int]()
+    post.foreach(p => {
+      //for each post word to check it creates a LB of 171000 members and then 
+      //goes through each to figure out the smallest member...takes 5 secs here
+      var word_results = ListBuffer[Int]()
+      for (word <- dic) {
+        val score = this.compare_words(p.trim.toUpperCase, word.trim)
+        word_results += score.size
+      }  
+      results :+= word_results.min
+    })
+    results.sum
   }
-
 
   def compare_words(wordz:String,word:String) = {
     var dump = List[String]()
-    var count = 0
-    var previous_index = 0
-    if (word.diff(wordz) == word && wordz.length <= word.length){
-      word.foreach(dump :+= _.toString)
-    }
-    else{
-      wordz.foreach(letter => {
-        val index = word.indexOf(letter)
-        // that makes me sad
-        val condition = if (count + 1 == wordz.length) {1 == 1} 
-                        else {index != 0 && previous_index != -1}
-        val condition2 = word.count(l => l.toString == letter) > 1 && count > index
-        if (index == -1) dump :+= letter.toString
-        else {
-          if (wordz.length < word.length && count == 0){ 
-            word.diff(wordz).foreach(dump :+= _.toString)
-            if (condition && (index <= previous_index || index > count)) dump :+= letter.toString
-          }
-          if (wordz.length == word.length){
-            if (condition && index != count) dump :+= letter.toString
-          }
-	  else{
-            if (condition && condition2 && (index <= previous_index || previous_index == -1)) dump :+= letter.toString
-	  }
-        }   
-      //for debugging
-        println("lettre: "+letter+"   index: "+index+"   previous_index: "+previous_index+"   count: "+count)
-        previous_index = index
-        count += 1
+    if (wordz.length >= word.length)
+      wordz.diff(word).foreach(dump :+= _.toString)
+    else
+      word.diff(wordz).foreach(dump :+= _.toString)
+    if (word.intersect(wordz) == word){
+      wordz.intersect(word).zipAll(word,0,9).foreach(zipd =>{
+        if (zipd._1 != zipd._2) dump :+= zipd._1.toString
       })
-    } 
+    }
     dump
   }
 
@@ -131,6 +112,14 @@ class BreathalyzerTest extends FunSuite{
     assert(dump(0).toString == "i") 
     assert(dump(1).toString == "o") 
   }
+  test("aviotxure"){
+    val dump = Breathalyzer.compare_words("aviotxure", "voiture")
+    assert(dump.size == 4)
+    assert(dump(0).toString == "a") 
+    assert(dump(1).toString == "x") 
+    assert(dump(2).toString == "i") 
+    assert(dump(3).toString == "o") 
+  }
   test("qvoitzures"){
     val dump = Breathalyzer.compare_words("qvoitzures", "voiture")
     assert(dump.size == 3)
@@ -194,13 +183,13 @@ class BreathalyzerTest extends FunSuite{
   test("yyyyyyy"){
     val dump = Breathalyzer.compare_words("yyyyyyy", "voiture")
     assert(dump.size == 7)
-    assert(dump(0).toString == "v") 
-    assert(dump(1).toString == "o") 
-    assert(dump(2).toString == "i") 
-    assert(dump(3).toString == "t") 
-    assert(dump(4).toString == "u") 
-    assert(dump(5).toString == "r") 
-    assert(dump(6).toString == "e") 
+    assert(dump(0).toString == "y") 
+    assert(dump(1).toString == "y") 
+    assert(dump(2).toString == "y") 
+    assert(dump(3).toString == "y") 
+    assert(dump(4).toString == "y") 
+    assert(dump(5).toString == "y") 
+    assert(dump(6).toString == "y") 
   }
   test("xxxture"){
     val dump = Breathalyzer.compare_words("xxxture", "voiture")
@@ -217,11 +206,39 @@ class BreathalyzerTest extends FunSuite{
     assert(dump(2).toString == "a") 
     assert(dump(3).toString == "u") 
   }
+  test("tihs"){
+    val dump = Breathalyzer.compare_words("tihs", "this")
+    assert(dump.size == 2)
+    assert(dump(0).toString == "i") 
+    assert(dump(1).toString == "h") 
+  }
   test("sententcnes"){
     val dump = Breathalyzer.compare_words("sententcnes", "sentences")
     assert(dump.size == 2)
     assert(dump(0).toString == "t") 
     assert(dump(1).toString == "n") 
+  }
+  test("iss"){
+    val dump = Breathalyzer.compare_words("iss", "is")
+    assert(dump.size == 1)
+    assert(dump(0).toString == "s") 
+  }
+  test("nout"){
+    val dump = Breathalyzer.compare_words("nout", "not")
+    assert(dump.size == 1)
+    assert(dump(0).toString == "u") 
+  }
+  test("varrry"){
+    val dump = Breathalyzer.compare_words("varrry", "very")
+    assert(dump.size == 3)
+    assert(dump(0).toString == "a") 
+    assert(dump(1).toString == "r") 
+    assert(dump(2).toString == "r") 
+  }
+  test("goud"){
+    val dump = Breathalyzer.compare_words("goud", "good")
+    assert(dump.size == 1)
+    assert(dump(0).toString == "u") 
   }
   test("gets the words to process form the post file"){
     val post = Breathalyzer.get_post    
@@ -231,6 +248,11 @@ class BreathalyzerTest extends FunSuite{
     assert(post(3).toString == "nout") 
     assert(post(4).toString == "varrry") 
     assert(post(5).toString == "goud") 
+  }
+  test("this thing works"){
+    val post = Breathalyzer.use_dictionary    
+    //no really sure how FB comes up with 8 but it works so...
+    assert(post == 8)
   }
 }
 
