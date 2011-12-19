@@ -9,11 +9,9 @@ import scala.io.Source
 import scala.collection.mutable.ListBuffer
 import scala.util.Sorting.stableSort
 
-//var combo = List[List[Int]]()
-//sorted_p.foreach(p => {
-//if (combo.size == 0 || combo.last(1) < p(0))
-//combo :+= p
-//})
+//this works by first creating gene predictions pairs i.e. for each prediction the closest next non overlapping prediction. 
+//With those pairs it then creates combinations by going in both directions using the closest next combination.
+
 
 object Gattaca {
 
@@ -38,25 +36,21 @@ object Gattaca {
         predictions :+= List[Int](start.toInt, end.toInt, score.toInt)
       }
     })
-    stableSort(predictions, (e1: List[Int], e2: List[Int]) => e1(0) < e2(0))
+    stableSort(predictions, (e1: List[Int], e2: List[Int]) => e1(0) < e2(0)).toList
   }
 
   def create_gene_predictions_pairs = {
     val predictions = this.create_list_of_gene_predictions
-    var pairs = List[List[Any]]()
+    var pairs = List[List[List[Int]]]()
     predictions.foreach(p => {
-      var bpair = List[List[Int]]()
-      var apair = List[List[Int]]()
       val before = predictions.filter(pf => pf(1) < p(0))
       val after = predictions.filter(pf => pf(0) > p(1))
       if (before.size > 0) {
-        bpair :+= before.last.toList 
-        bpair :+= p
+        val bpair = before.last.toList :: List(p)
         pairs :+= bpair 
       }
       if (after.size > 0) {
-        apair :+= p
-        apair :+= after.head.toList 
+        val apair = p :: List(after.head.toList) 
         pairs :+= apair 
       } 
     }) 
@@ -65,11 +59,10 @@ object Gattaca {
 
   def create_combinations_of_pairs = {
     val pairs = this.create_gene_predictions_pairs
-    var combos = List[List[Any]]()
+    var combos = List[List[List[Int]]]()
     pairs.foreach(p => {
-      var combo = List[List[Any]]()
+      var combo = List[List[List[Int]]]()
       combo :+= p
-      val before = pairs.filter( pf => pf(1) == combo.head(0) )
       while ( pairs.filter( pf => pf(1) == combo.head(0) ).size > 0 ) {
        combo +:= pairs.filter( pf => pf(1) == combo.head(0) ).head
       }     
@@ -81,14 +74,13 @@ object Gattaca {
     combos.distinct
   }
 
-  def generate_scores = {
+  def find_max_score = {
     val combos = this.create_combinations_of_pairs
     var scores = List[Int]()
     combos.foreach(c => {
-println(c)
-  //    scores :+= c.foldLeft(0) {(total, n) => total + n(2)}
-      //scores :+= score
+      scores :+= c.foldLeft(0) {(total, n) => total + n(2)}
     })
+    scores.max
   }
 
 }
@@ -135,8 +127,8 @@ class GattacaTest extends FunSuite{
     assert(Gattaca.create_combinations_of_pairs(2) == List(List(3, 18, 24), List(20, 39, 26), List(45, 74, 26), List(78, 97, 23)))
     assert(Gattaca.create_combinations_of_pairs(3) == List(List(3, 18, 24), List(20, 39, 26), List(65, 99, 45)))
   }
-  test("itssasa creates the correct amount of gene combinations"){
-    Gattaca.generate_scores 
+  test("this thing works"){
+    assert(Gattaca.find_max_score == 100)
   }
 }
 
